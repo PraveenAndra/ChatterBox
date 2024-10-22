@@ -4,6 +4,7 @@ import { Slot, useRouter, useSegments } from 'expo-router';
 import '../global.css';
 import { AuthContextProvider, useAuth } from '@/context/authContext';
 import { MenuProvider } from 'react-native-popup-menu';
+import {ChatProvider} from "@/context/chatContext";
 
 const MainLayout: React.FC = () => {
     const { isAuthenticated } = useAuth();
@@ -41,7 +42,9 @@ const RootLayout: React.FC = () => {
     return (
         <MenuProvider>
             <AuthContextProvider>
-                <MainLayout />
+                <ChatProvider>
+                    <MainLayout />
+                </ChatProvider>
             </AuthContextProvider>
         </MenuProvider>
     );

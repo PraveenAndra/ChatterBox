@@ -4,10 +4,17 @@ import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
     signOut,
-    User
+    User as FirebaseUser
 } from 'firebase/auth';
 import { auth, db } from "@/firebaseConfig";
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+
+interface User {
+    userId: string;
+    username: string;
+    profileUrl?: string;
+    [key: string]: any;
+}
 
 interface AuthContextType {
     user: User | null;
@@ -33,32 +40,40 @@ export const AuthContextProvider: React.FC<AuthProviderProps> = ({ children }) =
     const [isAuthenticated, setIsAuthenticated] = useState<boolean | undefined>(undefined);
 
     useEffect(() => {
-        const unsub = onAuthStateChanged(auth, (user) => {
-            if (user) {
+        const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+            if (firebaseUser) {
+                const mappedUser = await mapFirebaseUserToCustomUser(firebaseUser);
+                setUser(mappedUser);
                 setIsAuthenticated(true);
-                setUser(user);
-                updateUserData(user.uid);
             } else {
-                setIsAuthenticated(false);
                 setUser(null);
+                setIsAuthenticated(false);
             }
         });
+
         return unsub;
     }, []);
 
-    const updateUserData = async (userId: string) => {
-        const docRef = doc(db, 'users', userId);
+    const mapFirebaseUserToCustomUser = async (firebaseUser: FirebaseUser): Promise<User> => {
+        const docRef = doc(db, 'users', firebaseUser.uid);
         const docSnap = await getDoc(docRef);
+
+        let userData: User = {
+            userId: firebaseUser.uid,
+            username: firebaseUser.email ?? 'Unknown',
+            profileUrl: '',
+        };
 
         if (docSnap.exists()) {
             const data = docSnap.data();
-            setUser((prevUser) => ({
-                ...prevUser,
+            userData = {
+                ...userData,
                 username: data.username,
                 profileUrl: data.profileUrl,
-                userId: data.userId,
-            } as User));
+            };
         }
+
+        return userData;
     };
 
     const login = async (email: string, password: string) => {
@@ -90,12 +105,13 @@ export const AuthContextProvider: React.FC<AuthProviderProps> = ({ children }) =
     ) => {
         try {
             const response = await createUserWithEmailAndPassword(auth, email, password);
-            await setDoc(doc(db, "users", response.user.uid), {
+            const newUser: User = {
+                userId: response.user.uid,
                 username,
                 profileUrl,
-                userId: response.user.uid,
-            });
-            return { success: true, data: response.user };
+            };
+            await setDoc(doc(db, "users", newUser.userId), newUser);
+            return { success: true, data: newUser };
         } catch (e: any) {
             let msg = e.message;
             if (msg.includes('(auth/invalid-email)')) msg = 'Invalid email';
