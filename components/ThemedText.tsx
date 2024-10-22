@@ -1,6 +1,8 @@
 import { Text, type TextProps, StyleSheet } from 'react-native';
 
 import { useThemeColor } from '@/hooks/useThemeColor';
+import {TEXT_DESCRIPTION, TEXT_SUBTITLE, TEXT_TITLE} from "@/utils/colors";
+import {useFonts} from "expo-font";
 
 export type ThemedTextProps = TextProps & {
   lightColor?: string;
@@ -16,9 +18,11 @@ export function ThemedText({
   ...rest
 }: ThemedTextProps) {
   const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
-
+  const [fontsLoaded] = useFonts({
+    'SF-Pro': require('../assets/fonts/SF-Pro.ttf'),
+  });
   return (
-    <Text
+    <Text ellipsizeMode="tail"
       style={[
         { color },
         type === 'default' ? styles.default : undefined,
@@ -34,6 +38,27 @@ export function ThemedText({
 }
 
 const styles = StyleSheet.create({
+  titleStyle: {
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: -0.408,
+    color: TEXT_TITLE,
+    fontFamily:'SF-Pro'
+  },
+  subtitleStyle: {
+    fontSize: 14,
+    fontWeight: '400',
+    letterSpacing: -0.24,
+    color: TEXT_SUBTITLE,
+    fontFamily:'SF-Pro'
+  },
+  descriptionStyle: {
+    fontSize: 12,
+    fontWeight: '400',
+    letterSpacing: -0.078,
+    color: TEXT_DESCRIPTION,
+    fontFamily:'SF-Pro'
+  },
   default: {
     fontSize: 16,
     lineHeight: 24,

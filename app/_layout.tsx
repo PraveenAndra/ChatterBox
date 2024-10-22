@@ -1,37 +1,50 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import React, { useEffect } from 'react';
+import { View, StyleSheet } from 'react-native'; // Import View and StyleSheet
+import { Slot, useRouter, useSegments } from 'expo-router';
+import '../global.css';
+import { AuthContextProvider, useAuth } from '@/context/authContext';
+import { MenuProvider } from 'react-native-popup-menu';
 
-import { useColorScheme } from '@/hooks/useColorScheme';
+const MainLayout: React.FC = () => {
+    const { isAuthenticated } = useAuth();
+    const segments = useSegments();
+    const router = useRouter();
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+    useEffect(() => {
+        console.log('isAuthenticated:', isAuthenticated);
+        if (typeof isAuthenticated === 'undefined') return;
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
+        const inApp = segments[0] === '(app)';
+        if (isAuthenticated && !inApp) {
+            router.replace('/home');
+        } else if (!isAuthenticated && segments[0] !== 'signUp') {
+            console.log("in _layout");
+            router.replace('/signIn');
+        }
+    }, [isAuthenticated, segments, router]);
 
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
+    return (
+        <View style={styles.fullScreen}>
+            <Slot />
+        </View>
+    );
+};
 
-  if (!loaded) {
-    return null;
-  }
+const styles = StyleSheet.create({
+    fullScreen: {
+        flex: 1,
+        height: '100%',
+    },
+});
 
-  return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-    </ThemeProvider>
-  );
-}
+const RootLayout: React.FC = () => {
+    return (
+        <MenuProvider>
+            <AuthContextProvider>
+                <MainLayout />
+            </AuthContextProvider>
+        </MenuProvider>
+    );
+};
+
+export default RootLayout;
