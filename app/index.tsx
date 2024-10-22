@@ -1,15 +1,17 @@
-import { Text, View } from "react-native";
-import AuthenticationScreen from "@/screens/AuthenticationScreen";
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import React from 'react';
 
-export default function StartPage() {
+export default function StartPage(){
     return (
-        <View
-            style={{
-                flex: 1,
-                justifyContent: "center",
-                alignItems: "center",
-            }}
-        >
+        <View style={styles.container}>
+            <ActivityIndicator size="large" color="gray" />
         </View>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        justifyContent: 'center',
+    },
+});

@@ -7,14 +7,13 @@ import {
     TouchableOpacity,
     Pressable,
     Alert,
-    StyleSheet
+    StyleSheet,
 } from 'react-native';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { StatusBar } from 'expo-status-bar';
 import { Octicons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
 import Loading from '../components/Loading';
-import CustomKeyboardView from '../components/CustomKeyboardView';
 import { useAuth } from '@/context/authContext';
 
 const SignIn: React.FC = () => {
@@ -50,7 +49,6 @@ const SignIn: React.FC = () => {
         <View style={styles.fullScreen}>
             <StatusBar style="dark" />
             <View style={styles.container}>
-                {/* Sign-in Image */}
                 <View style={styles.imageContainer}>
                     <Image
                         style={styles.image}
@@ -59,14 +57,12 @@ const SignIn: React.FC = () => {
                     />
                 </View>
 
-                {/* Inputs and Buttons */}
                 <View style={styles.formContainer}>
                     <Text style={styles.title}>Sign In</Text>
 
                     <View style={styles.inputGroup}>
-                        {/* Email Input */}
                         <View style={styles.inputContainer}>
-                            <Octicons name="mail" size={hp(2.7)} color="#007BFF" />
+                            <Octicons name="mail" size={hp(2.7)} color="#017B6B" />
                             <TextInput
                                 onChangeText={(value) => (emailRef.current = value)}
                                 style={styles.input}
@@ -75,10 +71,9 @@ const SignIn: React.FC = () => {
                             />
                         </View>
 
-                        {/* Password Input */}
                         <View style={styles.passwordGroup}>
                             <View style={styles.inputContainer}>
-                                <Octicons name="lock" size={hp(2.7)} color="#007BFF" />
+                                <Octicons name="lock" size={hp(2.7)} color="#017B6B" />
                                 <TextInput
                                     onChangeText={(value) => (passwordRef.current = value)}
                                     style={styles.input}
@@ -90,7 +85,6 @@ const SignIn: React.FC = () => {
                             <Text style={styles.forgotPassword}>Forgot password?</Text>
                         </View>
 
-                        {/* Submit Button */}
                         <View>
                             {loading ? (
                                 <View style={styles.loadingContainer}>
@@ -106,7 +100,6 @@ const SignIn: React.FC = () => {
                             )}
                         </View>
 
-                        {/* Sign Up Link */}
                         <View style={styles.signUpContainer}>
                             <Text style={styles.signUpText}>Don't have an account? </Text>
                             <Link href="/signUp" asChild>
@@ -124,43 +117,40 @@ const SignIn: React.FC = () => {
 
 const styles = StyleSheet.create({
     fullScreen: {
-        flex: 1, // Ensures the keyboard view takes up full height
+        flex: 1,
         height: '100%',
+        backgroundColor: '#F0F0F0',
     },
     container: {
         height: '100%',
         flex: 1,
         paddingTop: hp(8),
         paddingHorizontal: wp(5),
-        backgroundColor: '#E5E5E5', // Light gray background for the container
     },
     imageContainer: {
         alignItems: 'center',
-        marginBottom: hp(4), // Space between image and form
+        marginBottom: hp(4),
     },
     image: {
         height: hp(25),
-        width: wp(60), // Set width for consistency
+        width: wp(60),
     },
     formContainer: {
-        backgroundColor: '#FFFFFF', // White background for the form
+        backgroundColor: '#FFFFFF',
         borderRadius: 12,
         padding: hp(4),
-        shadowColor: '#000', // Shadow for elevation effect
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 4,
-        elevation: 5, // Android shadow
+        elevation: 5,
         gap: 10,
     },
     title: {
         fontSize: hp(4),
         fontWeight: 'bold',
         textAlign: 'center',
-        color: '#333', // Dark gray title
+        color: '#017B6B',
     },
     inputGroup: {
         gap: 4,
@@ -171,14 +161,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 4,
         paddingHorizontal: 16,
-        backgroundColor: '#F2F2F2', // Softer input background
+        backgroundColor: '#F2F2F2',
         borderRadius: 12,
     },
     input: {
         flex: 1,
         fontSize: hp(2),
         fontWeight: '600',
-        color: '#333', // Dark gray text color
+        color: '#333',
     },
     passwordGroup: {
         gap: 3,
@@ -186,7 +176,7 @@ const styles = StyleSheet.create({
     forgotPassword: {
         fontSize: hp(1.8),
         textAlign: 'right',
-        color: '#007BFF', // Primary blue color
+        color: '#017B6B',
         marginTop: 5,
     },
     loadingContainer: {
@@ -195,15 +185,15 @@ const styles = StyleSheet.create({
     },
     signInButton: {
         height: hp(6.5),
-        backgroundColor: '#007BFF', // Primary blue color for button
+        backgroundColor: '#017B6B',
         borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
-        marginVertical: hp(2), // Space around the button
+        marginVertical: hp(2),
     },
     signInButtonText: {
         fontSize: hp(2.7),
-        color: '#FFFFFF', // White text color for button
+        color: '#FFFFFF',
         fontWeight: 'bold',
     },
     signUpContainer: {
@@ -212,12 +202,12 @@ const styles = StyleSheet.create({
     },
     signUpText: {
         fontSize: hp(1.8),
-        color: '#777', // Gray text color for sign-up prompt
+        color: '#777',
     },
     signUpLink: {
         fontSize: hp(1.8),
         fontWeight: 'bold',
-        color: '#007BFF', // Primary blue color for sign-up link
+        color: '#017B6B',
     },
 });
 
