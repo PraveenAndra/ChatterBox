@@ -17,13 +17,19 @@ import { Feather, Entypo } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { useAuth } from '@/context/authContext';
-import {router} from "expo-router";
+import { router } from "expo-router";
+import { db } from '@/firebaseConfig'; // Assuming firebase is initialized and exported from this path
+import { doc, updateDoc } from 'firebase/firestore';
+import * as FileSystem from 'expo-file-system';
 
 export default function Profile() {
     const { user, logout } = useAuth();
     const [username, setUsername] = useState(user?.username || '');
     const [profileUrl, setProfileUrl] = useState(user?.profileUrl || '');
     const insets = useSafeAreaInsets();
+
+    // Helper function to check if the profileUrl is a base64 encoded image
+    const isBase64 = (url: string) => url.startsWith("data:image/");
 
     const handleImagePick = async () => {
         const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -32,11 +38,19 @@ export default function Profile() {
             return;
         }
 
-        const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images });
-        if (!result.canceled) {
-            setProfileUrl(result.assets[0].uri);
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            quality: 0.5, // Adjust quality as needed
+            base64: true, // Include base64 data directly
+        });
+
+        if (!result.canceled && result.assets[0]?.base64) {
+            // console.log(result.assets[0]);
+            setProfileUrl(result.assets[0].uri); // Use base64 data
+            console.log(profileUrl);
         }
     };
+
 
     const handleLogout = async () => {
         try {
@@ -47,8 +61,35 @@ export default function Profile() {
         }
     };
 
-    const handleSave = () => {
-        Alert.alert('Profile updated', 'Your profile has been successfully updated.');
+    const handleSave = async () => {
+        console.log(user);
+        if (!user || !user.userId) {
+            // If user or user.uid is not defined, show an alert and stop execution
+            console.error('User ID is undefined. Cannot save profile data.');
+            Alert.alert('Error', 'User data is missing. Please try again later.');
+            return;
+        }
+
+        try {
+            // Get a reference to the Firestore document
+            const userDocRef = doc(db, 'users', user?.userId);
+
+            // Log document reference for debugging
+            console.log('Updating document:', userDocRef.path);
+
+            // Update Firestore document with new username and profileUrl
+            await updateDoc(userDocRef, {
+                username: username,
+                profileUrl: profileUrl,
+            });
+
+            // Success alert
+            Alert.alert('Profile updated', 'Your profile has been successfully updated.');
+        } catch (error) {
+            // Log and display error if update fails
+            console.error('Failed to update profile:', error);
+            Alert.alert('Update failed', 'Could not save your profile changes. Please try again.');
+        }
     };
 
     return (
@@ -67,7 +108,10 @@ export default function Profile() {
             <ScrollView contentContainerStyle={styles.innerContainer}>
                 <TouchableOpacity onPress={handleImagePick} style={styles.imageContainer}>
                     {profileUrl ? (
-                        <Image source={{ uri: profileUrl }} style={styles.profileImage} />
+                        <Image
+                            source={{ uri: isBase64(profileUrl) ? profileUrl : profileUrl }}
+                            style={styles.profileImage}
+                        />
                     ) : (
                         <Feather name="user" size={hp(7)} color="#FFF" style={styles.placeholderIcon} />
                     )}
@@ -87,7 +131,7 @@ export default function Profile() {
                 </View>
 
                 <View style={styles.menuContainer}>
-                    <MenuItem icon="lock" title="Change Password" />
+                    <MenuItem icon="lock" title="Change Password" onPress={() => router.push('change-password')}/>
                     <MenuItem icon="bell" title="Notifications" />
                     <MenuItem icon="eye" title="Privacy Settings" />
                     <MenuItem icon="info" title="About App" />

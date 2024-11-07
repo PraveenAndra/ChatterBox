@@ -1,7 +1,7 @@
 import { View, ScrollView, Text, StyleSheet } from 'react-native';
 import React from 'react';
 import MessageItem from './MessageItem';
-import { format } from 'date-fns'; // Date formatting library
+import { format, isToday, isYesterday } from 'date-fns'; // Date formatting library
 
 interface Message {
     userId: string;
@@ -28,8 +28,7 @@ export default function MessageList({
                                         scrollViewRef,
                                         currentUser,
                                     }: MessageListProps): JSX.Element {
-    const isSameDay = (d1: Date, d2: Date) =>
-        d1.toDateString() === d2.toDateString(); // Helper to compare two dates
+    const isSameDay = (d1: Date, d2: Date) => d1.toDateString() === d2.toDateString();
 
     return (
         <ScrollView
@@ -46,13 +45,17 @@ export default function MessageList({
                         messageDate
                     );
 
+                const dateLabel = isToday(messageDate)
+                    ? 'Today'
+                    : isYesterday(messageDate)
+                        ? 'Yesterday'
+                        : format(messageDate, 'EEE, MMM d');
+
                 return (
                     <View key={index}>
                         {showDateSeparator && (
                             <View style={styles.dateSeparator}>
-                                <Text style={styles.dateText}>
-                                    {format(messageDate, 'EEE, MMM d')}
-                                </Text>
+                                <Text style={styles.dateText}>{dateLabel}</Text>
                             </View>
                         )}
                         <MessageItem message={message} currentUser={currentUser} />
