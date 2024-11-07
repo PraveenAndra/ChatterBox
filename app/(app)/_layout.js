@@ -34,6 +34,12 @@ export default function Layout() {
                     headerShown: false, // No header
                 }}
             />
+            <Stack.Screen
+                name="change-password"
+                options={{
+                    headerShown: false, // No header
+                }}
+            />
 
         </Stack>
     );

@@ -131,7 +131,7 @@ export default function Profile() {
                 </View>
 
                 <View style={styles.menuContainer}>
-                    <MenuItem icon="lock" title="Change Password" />
+                    <MenuItem icon="lock" title="Change Password" onPress={() => router.push('change-password')}/>
                     <MenuItem icon="bell" title="Notifications" />
                     <MenuItem icon="eye" title="Privacy Settings" />
                     <MenuItem icon="info" title="About App" />
