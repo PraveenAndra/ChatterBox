@@ -1,9 +1,11 @@
-import {
+    import {
     View,
     ActivityIndicator,
     StyleSheet,
     Text,
     TouchableOpacity,
+    AppStateStatus,
+    AppState,
 } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/context/authContext';
@@ -12,10 +14,11 @@ import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-nat
 import {Feather, MaterialIcons} from '@expo/vector-icons';
 import ChatList from '../../components/ChatList';
 import {
-    getDocs, query, collection, QuerySnapshot, DocumentData, where
+    getDocs, query, collection, QuerySnapshot, DocumentData, where, doc, setDoc, updateDoc
 } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import { useRouter } from 'expo-router';
+import { ref, set, onDisconnect } from 'firebase/database';
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 interface User {
@@ -30,10 +33,57 @@ export default function Home() {
     const router = useRouter();
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
+    const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
 
     useEffect(() => {
-        if (user?.userId) fetchUsersWithChatHistory();
-    }, [user?.userId]);
+        if (user?.userId) {
+            fetchUsersWithChatHistory();
+            setUserPresence(user.userId); // Set the user online when they enter the app
+        }
+
+        const handleAppStateChange = async (nextAppState: AppStateStatus) => {
+            console.log("AppState change detected:", nextAppState); // Debugging line to see the state
+
+            if (nextAppState === 'active') {
+                // Set user online when app becomes active
+                 setUserPresence(user.userId);
+            } else if (nextAppState === 'background' || nextAppState === 'inactive') {
+                // Delay offline update to allow async calls to complete before backgrounding
+                setTimeout(() => {
+                 setUserOffline(user.userId);
+                }, 100); // Adjust delay if needed for testing
+            }
+
+            // Update the appState to track current state
+            setAppState(nextAppState);
+        };
+
+        const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+        return () => {
+            subscription.remove();
+        };
+    }, [user?.userId, appState]);
+
+    const setUserPresence = async (userId: string) => {
+        const userStatusDocRef = doc(db, 'presence', userId);
+
+        // Set user status to online
+        await setDoc(userStatusDocRef, {
+            state: 'online',
+            lastSeen: Date.now(),
+        }, { merge: true }); // Merge ensures only specific fields are updated
+    };
+
+    const setUserOffline = async (userId: string) => {
+        const userStatusDocRef = doc(db, 'presence', userId);
+
+        // Set the user status to offline directly
+        await updateDoc(userStatusDocRef, {
+            state: 'offline',
+            lastSeen: Date.now(),
+        });
+    };
 
     const fetchUsersWithChatHistory = async (): Promise<void> => {
         try {
