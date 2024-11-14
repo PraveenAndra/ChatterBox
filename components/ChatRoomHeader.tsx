@@ -1,16 +1,18 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Entypo, Ionicons } from '@expo/vector-icons';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { Image } from 'expo-image';
 import { format } from 'date-fns';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '@/firebaseConfig'; // Assuming you have a firebaseConfig file
 
 interface User {
     userId: string;
     username: string;
     profileUrl?: string;
-    lastSeen?: Date; // New field for last seen
+    lastSeen?: Date;
 }
 
 interface ChatRoomHeaderProps {
@@ -19,10 +21,32 @@ interface ChatRoomHeaderProps {
 
 export default function ChatRoomHeader({ user }: ChatRoomHeaderProps) {
     const router = useRouter();
+    const [isOnline, setIsOnline] = useState<boolean | null>(null); // `null` if not found, `true` for online, `false` for offline
+    const [lastSeen, setLastSeen] = useState<Date | null>(user.lastSeen || null);
 
-    const getLastSeenText = (lastSeen: Date | undefined): string => {
-        if (!lastSeen) return 'Last seen recently'; // Default message if no timestamp
-        return `Last seen ${format(lastSeen, 'EEE, MMM d')} at ${format(lastSeen, 'p')}`; // e.g., Sun, Oct 22 at 3:39 PM
+    useEffect(() => {
+        if (!user?.userId) return;
+
+        const userStatusRef = doc(db, 'presence', user.userId);
+
+        const unsubscribe = onSnapshot(userStatusRef, (docSnapshot) => {
+            if (docSnapshot.exists()) {
+                const data = docSnapshot.data();
+                setIsOnline(data.state === 'online');
+                setLastSeen(data.lastSeen ? new Date(data.lastSeen) : null);
+            } else {
+                setIsOnline(null); // No presence data available
+            }
+        });
+
+        return () => unsubscribe();
+    }, [user.userId]);
+
+    const getLastSeenText = (): string | null => {
+        if (isOnline === null) return null; // If no presence data, show nothing
+        if (isOnline) return 'Online';
+        if (lastSeen) return `Last seen ${format(lastSeen, 'EEE, MMM d')} at ${format(lastSeen, 'p')}`;
+        return 'Last seen recently';
     };
 
     return (
@@ -43,9 +67,11 @@ export default function ChatRoomHeader({ user }: ChatRoomHeaderProps) {
                             />
                             <View style={styles.textContainer}>
                                 <Text style={styles.username}>{user?.username}</Text>
-                                <Text style={styles.lastSeenText}>
-                                    {getLastSeenText(user?.lastSeen)}
-                                </Text>
+                                {getLastSeenText() && (
+                                    <Text style={styles.lastSeenText}>
+                                        {getLastSeenText()}
+                                    </Text>
+                                )}
                             </View>
                         </View>
                     </View>
@@ -84,11 +110,11 @@ const styles = StyleSheet.create({
     username: {
         fontSize: hp(2),
         fontWeight: '600',
-        color: '#FFFFFF', // White text for better contrast
+        color: '#FFFFFF',
     },
     lastSeenText: {
         fontSize: hp(1.6),
-        color: '#FFFFFF', // Light white text
+        color: '#FFFFFF',
         marginTop: hp(0.3),
     },
     rightContainer: {
