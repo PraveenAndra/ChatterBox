@@ -7,7 +7,7 @@ import {
     User as FirebaseUser
 } from 'firebase/auth';
 import { auth, db } from "@/firebaseConfig";
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import {doc, getDoc, setDoc, updateDoc} from 'firebase/firestore';
 
 interface User {
     userId: string;
@@ -19,6 +19,7 @@ interface User {
 interface AuthContextType {
     user: User | null;
     isAuthenticated: boolean | undefined;
+
     login: (email: string, password: string) => Promise<{ success: boolean; msg?: string }>;
     register: (
         email: string,
@@ -27,6 +28,7 @@ interface AuthContextType {
         profileUrl: string
     ) => Promise<{ success: boolean; data?: User; msg?: string }>;
     logout: () => Promise<{ success: boolean; msg?: string; error?: unknown }>;
+    refreshUser: () => Promise<{ success: boolean; data?: User; msg?: string }>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -88,14 +90,66 @@ export const AuthContextProvider: React.FC<AuthProviderProps> = ({ children }) =
         }
     };
 
+
     const logout = async () => {
         try {
+            if (!user || !user.userId) {
+                throw new Error("User is not authenticated.");
+            }
+
+            // Reference to the presence document
+            const userStatusDocRef = doc(db, 'presence', user.userId);
+
+            // Set the user's status to offline and update lastSeen
+
+            // Proceed with signing the user out
             await signOut(auth);
+            await updateDoc(userStatusDocRef, {
+                state: 'offline',
+                lastSeen: Date.now(),
+            });
+
+
+            // Clear the user state in your context
+            setUser(null);
+
             return { success: true };
         } catch (e: any) {
+            console.error('Logout Error:', e);
             return { success: false, msg: e.message, error: e };
         }
     };
+    const refreshUser = async () => {
+        if (!user || !user.userId) {
+            console.error("User is not authenticated or userId is missing.");
+            return { success: false, msg: "User not authenticated" };
+        }
+
+        try {
+            const docRef = doc(db, 'users', user.userId);
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                const updatedUser: User = {
+                    userId: user.userId,
+                    username: data.username || user.username,
+                    profileUrl: data.profileUrl || user.profileUrl,
+                    ...data,
+                };
+
+                setUser(updatedUser); // Update the user state
+                return { success: true, data: updatedUser };
+            } else {
+                console.error('User document not found in Firestore.');
+                return { success: false, msg: 'User not found' };
+            }
+        } catch (e: any) {
+            console.error('Error refreshing user data:', e);
+            return { success: false, msg: e.message };
+        }
+    };
+
 
     const register = async (
         email: string,
@@ -121,7 +175,7 @@ export const AuthContextProvider: React.FC<AuthProviderProps> = ({ children }) =
     };
 
     return (
-        <AuthContext.Provider value={{ user, isAuthenticated, login, register, logout }}>
+        <AuthContext.Provider value={{ user, isAuthenticated, login, register, logout, refreshUser }}>
             {children}
         </AuthContext.Provider>
     );

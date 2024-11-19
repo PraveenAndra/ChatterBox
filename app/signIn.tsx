@@ -11,13 +11,14 @@ import {
 } from 'react-native';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { StatusBar } from 'expo-status-bar';
-import { Octicons } from '@expo/vector-icons';
+import {Feather, Octicons} from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
 import Loading from '../components/Loading';
 import { useAuth } from '@/context/authContext';
 
 const SignIn: React.FC = () => {
     const router = useRouter();
+    const [passwordVisible, setPasswordVisible] = useState<boolean>(false);
     const [loading, setLoading] = useState<boolean>(false);
     const { login } = useAuth();
 
@@ -62,7 +63,7 @@ const SignIn: React.FC = () => {
 
                     <View style={styles.inputGroup}>
                         <View style={styles.inputContainer}>
-                            <Octicons name="mail" size={hp(2.7)} color="#017B6B" />
+                            <Octicons name="mail" size={hp(2.7)} color="#dfdfdf" />
                             <TextInput
                                 onChangeText={(value) => (emailRef.current = value)}
                                 style={styles.input}
@@ -71,18 +72,25 @@ const SignIn: React.FC = () => {
                             />
                         </View>
 
-                        <View style={styles.passwordGroup}>
-                            <View style={styles.inputContainer}>
-                                <Octicons name="lock" size={hp(2.7)} color="#017B6B" />
-                                <TextInput
-                                    onChangeText={(value) => (passwordRef.current = value)}
-                                    style={styles.input}
-                                    placeholder="Password"
-                                    secureTextEntry
-                                    placeholderTextColor="#B0B0B0"
+                        <View style={styles.inputContainer}>
+                            <Octicons name="lock" size={hp(2.7)} color="#dfdfdf" />
+                            <TextInput
+                                onChangeText={(value) => (passwordRef.current = value)}
+                                style={styles.input}
+                                placeholder="Password"
+                                secureTextEntry={!passwordVisible}
+                                placeholderTextColor="#B0B0B0"
+                            />
+                            <TouchableOpacity
+                                onPress={() => setPasswordVisible(!passwordVisible)}
+                                style={styles.visibilityToggle}
+                            >
+                                <Feather
+                                    name={passwordVisible ? 'eye-off' : 'eye'}
+                                    size={hp(2.5)}
+                                    color="#dfdfdf"
                                 />
-                            </View>
-                            <Text style={styles.forgotPassword}>Forgot password?</Text>
+                            </TouchableOpacity>
                         </View>
 
                         <View>
@@ -118,11 +126,9 @@ const SignIn: React.FC = () => {
 const styles = StyleSheet.create({
     fullScreen: {
         flex: 1,
-        height: '100%',
-        backgroundColor: '#F0F0F0',
+        backgroundColor: '#000000', // Pure black background
     },
     container: {
-        height: '100%',
         flex: 1,
         paddingTop: hp(8),
         paddingHorizontal: wp(5),
@@ -135,8 +141,11 @@ const styles = StyleSheet.create({
         height: hp(25),
         width: wp(60),
     },
+    visibilityToggle: {
+        padding: hp(0.5),
+    },
     formContainer: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#1E1E1E', // Slightly lighter black for form container
         borderRadius: 12,
         padding: hp(4),
         shadowColor: '#000',
@@ -147,28 +156,29 @@ const styles = StyleSheet.create({
         gap: 10,
     },
     title: {
-        fontSize: hp(4),
+        fontSize: hp(3),
         fontWeight: 'bold',
         textAlign: 'center',
-        color: '#017B6B',
+        color: '#FFFFFF', // White text for visibility
+        marginBottom: hp(3),
     },
     inputGroup: {
-        gap: 4,
+        gap: 12, // Increased spacing for a modern layout
     },
     inputContainer: {
         height: hp(7),
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
-        paddingHorizontal: 16,
-        backgroundColor: '#F2F2F2',
+        gap: 12,
+        paddingHorizontal: wp(4),
+        backgroundColor: '#333333', // Dark gray for input fields
         borderRadius: 12,
     },
     input: {
         flex: 1,
         fontSize: hp(2),
-        fontWeight: '600',
-        color: '#333',
+        fontWeight: '500',
+        color: '#FFFFFF', // White text for input
     },
     passwordGroup: {
         gap: 3,
@@ -176,7 +186,7 @@ const styles = StyleSheet.create({
     forgotPassword: {
         fontSize: hp(1.8),
         textAlign: 'right',
-        color: '#017B6B',
+        color: '#FFFFFF', // White text for links
         marginTop: 5,
     },
     loadingContainer: {
@@ -185,30 +195,39 @@ const styles = StyleSheet.create({
     },
     signInButton: {
         height: hp(6.5),
-        backgroundColor: '#017B6B',
+        backgroundColor: '#dfdfdf', // White button for contrast
         borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
         marginVertical: hp(2),
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 3,
     },
     signInButtonText: {
-        fontSize: hp(2.7),
-        color: '#FFFFFF',
+        fontSize: hp(2.5),
+        color: '#000000', // Black text to contrast with the white button
         fontWeight: 'bold',
     },
     signUpContainer: {
         flexDirection: 'row',
         justifyContent: 'center',
+        marginTop: hp(2),
     },
     signUpText: {
         fontSize: hp(1.8),
-        color: '#777',
+        color: '#FFFFFF', // White text for supporting text
     },
     signUpLink: {
         fontSize: hp(1.8),
         fontWeight: 'bold',
-        color: '#017B6B',
+        color: '#bebebe', // White link for consistency
+        textDecorationLine: 'underline', // Subtle underline for emphasis
     },
 });
+
+
 
 export default SignIn;

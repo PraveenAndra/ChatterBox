@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
+import {View, Text, TouchableOpacity, Modal, StyleSheet, Alert} from 'react-native';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { Image } from 'expo-image';
 import { blurhash, formatDate, getRoomId } from '@/utils/common';
 import { collection, doc, onSnapshot, orderBy, query, QuerySnapshot, DocumentData } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import { Router } from 'expo-router';
-import { useChat } from "@/context/chatContext";
+import { useChat } from '@/context/chatContext';
 import { Ionicons } from '@expo/vector-icons';
 
 interface User {
@@ -35,7 +35,13 @@ export default function ChatItem({ item, router, noBorder, currentUser }: ChatIt
     const [isModalVisible, setIsModalVisible] = useState<boolean>(false); // Modal state
 
     useEffect(() => {
-        const roomId = getRoomId(currentUser?.userId, item?.userId);
+        // Ensure `currentUser` is not null before proceeding
+        if (!currentUser?.userId) {
+            console.warn('No currentUser available.');
+            return;
+        }
+
+        const roomId = getRoomId(currentUser.userId, item?.userId);
         const docRef = doc(db, 'rooms', roomId);
         const messagesRef = collection(docRef, 'messages');
         const q = query(messagesRef, orderBy('createdAt', 'desc'));
@@ -49,6 +55,11 @@ export default function ChatItem({ item, router, noBorder, currentUser }: ChatIt
     }, [currentUser, item]);
 
     const openChatRoom = () => {
+        if (!currentUser) {
+            Alert.alert('Error', 'You must be signed in to access this chat.');
+            return;
+        }
+
         setSelectedUser(item);
         router.push({ pathname: '/chatRoom', params: item });
     };
@@ -69,6 +80,7 @@ export default function ChatItem({ item, router, noBorder, currentUser }: ChatIt
     };
 
     const renderLastMessage = (): string => {
+        if (!currentUser) return '';
         if (typeof lastMessage === 'undefined') return 'Loading...';
         if (lastMessage) {
             return currentUser.userId === lastMessage.userId ? `You: ${lastMessage.text}` : lastMessage.text;
@@ -92,7 +104,10 @@ export default function ChatItem({ item, router, noBorder, currentUser }: ChatIt
             {/* Main Chat Item Touchable */}
             <TouchableOpacity
                 onPress={openChatRoom}
-                className={`flex-1 flex-row justify-between items-center gap-3 pb-2 ${noBorder ? '' : 'border-b border-b-neutral-200'}`}
+                style={[
+                    styles.chatItemContainer,
+                    !noBorder && styles.chatItemWithBorder, // Apply border style only if noBorder is false
+                ]}
             >
                 <View className="flex-1 gap-1">
                     <View className="flex-row justify-between">
@@ -161,5 +176,19 @@ const styles = StyleSheet.create({
         top: 40,
         right: 20,
         zIndex: 1,
+    },
+    chatItemContainer: {
+        flex: 1,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingBottom: 10, // Adjust the bottom padding
+        gap: 12, // Adjust the gap between elements
+    },
+    chatItemWithBorder: {
+        borderBottomWidth: 1,
+        borderBottomColor: '#c0bebe', // Dark gray color for the border
+        paddingBottom: 15, // Add padding above the border
+        marginTop: 10, // Ensure there's spacing above the border
     },
 });

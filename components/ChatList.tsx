@@ -1,4 +1,4 @@
-import { View, FlatList, ListRenderItem } from 'react-native';
+import { View, FlatList, ListRenderItem, StyleSheet } from 'react-native';
 import React from 'react';
 import ChatItem from './ChatItem';
 import { useRouter } from 'expo-router';
@@ -15,28 +15,46 @@ interface ChatListProps {
     currentUser: User | null;
 }
 
-export default function ChatList({ users, currentUser }: ChatListProps){
+export default function ChatList({ users, currentUser }: ChatListProps) {
     const router = useRouter();
 
     const renderItem: ListRenderItem<User> = ({ item, index }) => (
-        <ChatItem
-            noBorder={index + 1 === users.length}
-            router={router}
-            currentUser={currentUser}
-            item={item}
-            // index={index}
-        />
+        <View>
+            <ChatItem
+                noBorder={index + 1 === users.length}
+                router={router}
+                currentUser={currentUser}
+                item={item}
+            />
+            {/* Render a divider unless it's the last item */}
+            {/*{index + 1 !== users.length && <View style={styles.divider} />}*/}
+        </View>
     );
 
     return (
-        <View className="flex-1">
+        <View style={styles.container}>
             <FlatList
                 data={users}
-                contentContainerStyle={{ flex: 1, paddingVertical: 25 }}
-                keyExtractor={() => Math.random().toString()} // Math.random() as a key is not recommended
+                contentContainerStyle={styles.listContainer}
+                keyExtractor={(item) => item.userId} // Use userId as the unique key
                 showsVerticalScrollIndicator={false}
                 renderItem={renderItem}
             />
         </View>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#F0F0F0', // Retain the dark theme
+    },
+    listContainer: {
+        paddingVertical: 15, // Consistent vertical spacing
+    },
+    divider: {
+        height: 1,
+        backgroundColor: '#333', // Subtle divider color matching the theme
+        marginHorizontal: 20, // Align divider with ChatItem padding
+    },
+});
