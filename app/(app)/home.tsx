@@ -58,6 +58,7 @@ export default function Home() {
         setUserPresence(user.userId);
 
         const presenceListener = setupPresenceListener();
+        const roomsListener = setupRoomsListener();
         const handleAppStateChange = (nextAppState: AppStateStatus) => {
             if (nextAppState === 'active') {
                 setUserPresence(user.userId);
@@ -72,13 +73,14 @@ export default function Home() {
         return () => {
             subscription.remove();
             presenceListener();
+            roomsListener();
         };
     }, [user?.userId]);
 
     useEffect(() => {
         // Trigger a refresh when the `refresh` parameter changes
         if (refresh) {
-            setLoading(true);
+            // setLoading(true);
             fetchUsersWithChatHistory();
         }
     }, [refresh]);
@@ -132,6 +134,24 @@ export default function Home() {
 
         return unsubscribe;
     };
+    const setupRoomsListener = () => {
+        const roomsRef = collection(db, 'rooms');
+
+        const unsubscribe = onSnapshot(roomsRef, (snapshot) => {
+            const updatedRoomIds: string[] = [];
+
+            snapshot.docs.forEach((doc) => {
+                const roomId = doc.id;
+                if (roomId.includes(user.userId)) {
+                    updatedRoomIds.push(roomId);
+                }
+            });
+
+            fetchUsersWithChatHistory();
+        });
+
+        return unsubscribe;
+    };
 
     const fetchUsersWithChatHistory = async (): Promise<void> => {
         if (!user?.userId) return;
@@ -152,17 +172,31 @@ export default function Home() {
 
                 if (otherUserId) {
                     const roomDoc = doc(db, 'rooms', roomId);
-                    const messagesRef = collection(roomDoc, 'messages');
-                    const latestMessageQuery = query(messagesRef, orderBy('createdAt', 'desc'), limit(1));
-                    const messageSnapshot = await getDocs(latestMessageQuery);
+                    const roomSnapshot = await getDoc(roomDoc);
 
-                    if (!messageSnapshot.empty) {
-                        const lastMessage = messageSnapshot.docs[0].data();
-                        otherUserIds.add(
-                            JSON.stringify({ userId: otherUserId, lastInteraction: lastMessage.createdAt.toMillis() })
-                        );
-                    } else {
-                        otherUserIds.add(JSON.stringify({ userId: otherUserId, lastInteraction: 0 }));
+                    if (roomSnapshot.exists()) {
+                        const roomData = roomSnapshot.data();
+                        const messagesRef = collection(roomDoc, 'messages');
+                        const latestMessageQuery = query(messagesRef, orderBy('createdAt', 'desc'), limit(1));
+                        const messageSnapshot = await getDocs(latestMessageQuery);
+
+                        if (!messageSnapshot.empty) {
+                            const lastMessage = messageSnapshot.docs[0].data();
+                            otherUserIds.add(
+                                JSON.stringify({ userId: otherUserId, lastInteraction: lastMessage.createdAt.toMillis() })
+                            );
+                        }
+                        else if (roomData?.createdAt) {
+                            // Use the room's createdAt time as lastInteraction if no messages exist
+                            otherUserIds.add(
+                                JSON.stringify({ userId: otherUserId, lastInteraction: roomData.createdAt.toMillis() })
+                            );
+                        } else {
+                            // Fallback in case room has no createdAt (optional)
+                            otherUserIds.add(
+                                JSON.stringify({ userId: otherUserId, lastInteraction: 0 })
+                            );
+                        }
                     }
                 }
             }
