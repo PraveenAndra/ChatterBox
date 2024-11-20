@@ -174,9 +174,9 @@ export default function Profile() {
 
                 <View style={styles.menuContainer}>
                     <MenuItem icon="lock" title="Change Password" onPress={() => router.push('/change-password')}/>
-                    <MenuItem icon="bell" title="Notifications" />
-                    <MenuItem icon="eye" title="Privacy Settings" />
-                    <MenuItem icon="info" title="About App" />
+                    {/*<MenuItem icon="bell" title="Notifications" />*/}
+                    {/*<MenuItem icon="eye" title="Privacy Settings" />*/}
+                    {/*<MenuItem icon="info" title="About App" />*/}
                     <MenuItem icon="log-out" title="Logout" onPress={handleLogout} />
                 </View>
             </ScrollView>

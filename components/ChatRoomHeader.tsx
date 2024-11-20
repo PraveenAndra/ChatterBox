@@ -76,12 +76,12 @@ export default function ChatRoomHeader({ user }: ChatRoomHeaderProps) {
 
             {/* Right Section */}
             <View style={styles.rightContainer}>
-                <TouchableOpacity style={styles.iconButton}>
-                    <Ionicons name="call" size={hp(2.8)} color="#FFFFFF" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.iconButton}>
-                    <Ionicons name="videocam" size={hp(2.8)} color="#FFFFFF" />
-                </TouchableOpacity>
+                {/*<TouchableOpacity style={styles.iconButton}>*/}
+                {/*    <Ionicons name="call" size={hp(2.8)} color="#FFFFFF" />*/}
+                {/*</TouchableOpacity>*/}
+                {/*<TouchableOpacity style={styles.iconButton}>*/}
+                {/*    <Ionicons name="videocam" size={hp(2.8)} color="#FFFFFF" />*/}
+                {/*</TouchableOpacity>*/}
             </View>
         </View>
     );
