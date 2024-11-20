@@ -22,6 +22,7 @@ import { db } from '@/firebaseConfig'; // Assuming firebase is initialized and e
 import { doc, updateDoc } from 'firebase/firestore';
 import * as FileSystem from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
+import {platform} from "node:os";
 
 export default function Profile() {
     const { user, logout,refreshUser } = useAuth();
@@ -51,8 +52,14 @@ export default function Profile() {
             try {
                 const base64Image = await processImage(result.assets[0]);
                 setProfileUrl(base64Image);
-                Alert.alert("Success", "Profile image updated successfully.");
+                if( Platform.OS === 'web'){
+                    window.alert("Profile image updated successfully.");
+                }
+                else Alert.alert("Success", "Profile image updated successfully.");
             } catch (error: any) {
+                if( Platform.OS === 'web'){
+                    window.alert("Error");
+                } else
                 Alert.alert("Error", error.message || "An unexpected error occurred.");
             }
         }
@@ -108,7 +115,7 @@ export default function Profile() {
         if (!user || !user.userId) {
             // If user or user.uid is not defined, show an alert and stop execution
             console.error('User ID is undefined. Cannot save profile data.');
-            Alert.alert('Error', 'User data is missing. Please try again later.');
+            // Alert.alert('Error', 'User data is missing. Please try again later.');
             return;
         }
 
@@ -126,10 +133,16 @@ export default function Profile() {
             });
             await refreshUser();
             // Success alert
+            if( Platform.OS === 'web'){
+                window.alert("Your profile has been successfully updated.");
+            }else
             Alert.alert('Profile updated', 'Your profile has been successfully updated.');
         } catch (error) {
             // Log and display error if update fails
             console.error('Failed to update profile:', error);
+            if( Platform.OS === 'web'){
+                window.alert("Could not save your profile changes. Please try again.");
+            }else
             Alert.alert('Update failed', 'Could not save your profile changes. Please try again.');
         }
     };

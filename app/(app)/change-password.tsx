@@ -5,7 +5,7 @@ import {
     TouchableOpacity,
     Text,
     Alert,
-    StyleSheet, ActivityIndicator,
+    StyleSheet, ActivityIndicator, Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '@/context/authContext';
@@ -21,42 +21,63 @@ export default function ChangePassword() {
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [passwordVisible, setPasswordVisible] = useState(false);
+    const [newPasswordVisible, setNewPasswordVisible] = useState(false);
+    const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
 
     const handleChangePassword = async () => {
-        if (newPassword !== confirmPassword) {
-            Alert.alert('Error', 'New password and confirm password do not match.');
-            return;
-        }
-
-        if (!user || !user.email) {
-            Alert.alert('Error', 'User not authenticated. Please log in again.');
-            return;
+        if (!newPassword || !confirmPassword || newPassword !== confirmPassword) {
+            if (Platform.OS === 'web') {
+                window.alert('Passwords do not match or are empty.');
+            }
+            else {
+                Alert.alert('Error', 'Passwords do not match or are empty.');
+                return;
+            }
         }
 
         const auth = getAuth();
-        const credential = EmailAuthProvider.credential(user.email, currentPassword);
+        const currentUser = auth.currentUser;
+
+        if (!currentUser) {
+            if (Platform.OS==='web'){
+                window.alert( 'No authenticated user found. Please log in again.');
+            }
+            else {
+                Alert.alert('Error', 'No authenticated user found. Please log in again.');
+            }
+            return;
+        }
 
         try {
             setLoading(true);
 
-            // Reauthenticate user
-            await reauthenticateWithCredential(user, credential);
-
-            // Update password
-            await updatePassword(user, newPassword);
-
-            Alert.alert('Success', 'Your password has been updated.');
+            const credential = EmailAuthProvider.credential(currentUser.email || '', currentPassword);
+            await reauthenticateWithCredential(currentUser, credential);
+            await updatePassword(currentUser, newPassword);
+            if (Platform.OS === 'web'){
+                window.alert('Your password has been updated.');
+            }
+            else{
+                Alert.alert('Success', 'Your password has been updated.');
+            }
             setCurrentPassword('');
             setNewPassword('');
             setConfirmPassword('');
-            router.push('/home'); // Navigate back to home after successful update
+            router.push('/home');
         } catch (error) {
             console.error('Password update error:', error);
-            Alert.alert('Password Update Failed', error.message);
+            if (Platform.OS === 'web'){
+                window.alert('Password Update Failed');
+            }
+            else{
+                Alert.alert('Password Update Failed'+ error.message || 'An unknown error occurred.');
+            }
         } finally {
             setLoading(false);
         }
     };
+
 
     return (
         <View style={styles.container}>
@@ -71,30 +92,68 @@ export default function ChangePassword() {
             <View style={styles.formContainer}>
                 <Text style={styles.title}>Change Password</Text>
 
-                <TextInput
-                    style={styles.input}
-                    value={currentPassword}
-                    onChangeText={setCurrentPassword}
-                    placeholder="Current Password"
-                    secureTextEntry
-                    placeholderTextColor="#B0B0B0"
-                />
-                <TextInput
-                    style={styles.input}
-                    value={newPassword}
-                    onChangeText={setNewPassword}
-                    placeholder="New Password"
-                    secureTextEntry
-                    placeholderTextColor="#B0B0B0"
-                />
-                <TextInput
-                    style={styles.input}
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    placeholder="Confirm New Password"
-                    secureTextEntry
-                    placeholderTextColor="#B0B0B0"
-                />
+                <View style={styles.inputContainer}>
+                    <TextInput
+                        style={styles.input}
+                        value={currentPassword}
+                        onChangeText={setCurrentPassword}
+                        placeholder="Current Password"
+                        secureTextEntry={!passwordVisible}
+                        placeholderTextColor="#B0B0B0"
+                    />
+                    <TouchableOpacity
+                        onPress={() => setPasswordVisible(!passwordVisible)}
+                        style={styles.visibilityToggle}
+                    >
+                        <Feather
+                            name={passwordVisible ? 'eye-off' : 'eye'}
+                            size={hp(2.5)}
+                            color="#dfdfdf"
+                        />
+                    </TouchableOpacity>
+                </View>
+
+                <View style={styles.inputContainer}>
+                    <TextInput
+                        style={styles.input}
+                        value={newPassword}
+                        onChangeText={setNewPassword}
+                        placeholder="New Password"
+                        secureTextEntry={!newPasswordVisible}
+                        placeholderTextColor="#B0B0B0"
+                    />
+                    <TouchableOpacity
+                        onPress={() => setNewPasswordVisible(!newPasswordVisible)}
+                        style={styles.visibilityToggle}
+                    >
+                        <Feather
+                            name={newPasswordVisible ? 'eye-off' : 'eye'}
+                            size={hp(2.5)}
+                            color="#dfdfdf"
+                        />
+                    </TouchableOpacity>
+                </View>
+
+                <View style={styles.inputContainer}>
+                    <TextInput
+                        style={styles.input}
+                        value={confirmPassword}
+                        onChangeText={setConfirmPassword}
+                        placeholder="Confirm New Password"
+                        secureTextEntry={!confirmPasswordVisible}
+                        placeholderTextColor="#B0B0B0"
+                    />
+                    <TouchableOpacity
+                        onPress={() => setConfirmPasswordVisible(!confirmPasswordVisible)}
+                        style={styles.visibilityToggle}
+                    >
+                        <Feather
+                            name={confirmPasswordVisible ? 'eye-off' : 'eye'}
+                            size={hp(2.5)}
+                            color="#dfdfdf"
+                        />
+                    </TouchableOpacity>
+                </View>
 
                 <TouchableOpacity
                     onPress={handleChangePassword}
@@ -147,15 +206,25 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: hp(3),
     },
-    input: {
+    inputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
         height: hp(6.5),
         backgroundColor: '#333333',
         borderRadius: 12,
         paddingHorizontal: wp(4),
         marginBottom: hp(2),
+    },
+    input: {
+        flex: 1,
         fontSize: hp(2),
         fontWeight: '500',
         color: '#FFF',
+    },
+    visibilityToggle: {
+        padding: hp(0.5),
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     button: {
         height: hp(6.5),

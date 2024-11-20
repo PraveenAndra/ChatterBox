@@ -7,7 +7,7 @@ import {
     TouchableOpacity,
     Pressable,
     Alert,
-    StyleSheet,
+    StyleSheet, Platform,
 } from 'react-native';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -38,6 +38,9 @@ const SignIn: React.FC = () => {
             console.log('Sign in response:', response);
 
             if (!response.success) {
+                if( Platform.OS === 'web'){
+                    window.alert(response.msg);
+                }else
                 Alert.alert('Sign In', response.msg);
             }
         } catch (error) {

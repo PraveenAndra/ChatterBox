@@ -64,6 +64,7 @@ export const AuthContextProvider: React.FC<AuthProviderProps> = ({ children }) =
             userId: firebaseUser.uid,
             username: firebaseUser.email ?? 'Unknown',
             profileUrl: '',
+            email: firebaseUser.email
         };
 
         if (docSnap.exists()) {
@@ -135,6 +136,7 @@ export const AuthContextProvider: React.FC<AuthProviderProps> = ({ children }) =
                     userId: user.userId,
                     username: data.username || user.username,
                     profileUrl: data.profileUrl || user.profileUrl,
+                    email: user.email,
                     ...data,
                 };
 
@@ -162,7 +164,7 @@ export const AuthContextProvider: React.FC<AuthProviderProps> = ({ children }) =
             const newUser: User = {
                 userId: response.user.uid,
                 username,
-                profileUrl,
+                profileUrl
             };
             await setDoc(doc(db, "users", newUser.userId), newUser);
             return { success: true, data: newUser };
