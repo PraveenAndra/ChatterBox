@@ -22,9 +22,10 @@ export default function Layout() {
             <Stack.Screen
                 name="chatRoom"
                 options={{
-                    headerStyle: { backgroundColor: '#017B6B' },
-                    headerTintColor: '#FFFFFF', // Set back button and title color
-                    headerTitleStyle: { fontSize: 18, fontWeight: 'bold' },
+                    // headerStyle: { backgroundColor: '#017B6B' },
+                    // headerTintColor: '#FFFFFF', // Set back button and title color
+                    // headerTitleStyle: { fontSize: 18, fontWeight: 'bold' },
+                    headerShown: false,
                 }}
             />
 

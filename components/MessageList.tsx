@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
     },
     dateSeparator: {
         alignSelf: 'center',
-        backgroundColor: '#E8E8E8',
+        backgroundColor: '#3F3F3F',
         borderRadius: 15,
         paddingHorizontal: 12,
         paddingVertical: 5,
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     },
     dateText: {
         fontSize: 14,
-        color: '#555',
+        color: '#F6F6F6',
         fontWeight: '500',
     },
 });

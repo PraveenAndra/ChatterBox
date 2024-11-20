@@ -174,11 +174,11 @@ export default function ChatRoom() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FAFAFA',
+        backgroundColor: '#FAFAFA', // Dark background for the chat screen
     },
     innerContainer: {
         flex: 1,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#e3e3e3', // Matches the theme
     },
     loadingContainer: {
         flex: 1,
@@ -188,48 +188,61 @@ const styles = StyleSheet.create({
     loadingText: {
         marginTop: hp(1),
         fontSize: hp(2),
-        color: '#737373',
+        color: '#AAA', // Subtle gray for loading text
     },
     messageList: {
-        paddingHorizontal: wp(3),
-        paddingVertical: hp(1),
+        paddingHorizontal: wp(2),
+        paddingVertical: hp(2),
     },
     inputWrapper: {
-        paddingHorizontal: wp(3),
+        paddingHorizontal: wp(4),
         paddingVertical: hp(1.5),
-        backgroundColor: '#F7F7F7',
-        borderTopLeftRadius: 25,
-        borderTopRightRadius: 25,
+        backgroundColor: '#2A2A2A', // Slightly lighter black for input bar area
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 6,
         elevation: 4,
+        marginBottom: hp(0),
     },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FFFFFF',
-        borderRadius: 30,
+        backgroundColor: '#1E1E1E', // Match with the theme for a unified look
+        borderRadius: 40, // Fully rounded input
         paddingHorizontal: wp(4),
-        paddingVertical: hp(1),
+        height: hp(6.5),
+        borderColor: '#333', // Subtle border for contrast
         borderWidth: 1,
-        borderColor: '#E0E0E0',
-        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
     },
     input: {
         flex: 1,
         fontSize: hp(2),
-        color: '#333',
+        color: '#FFF', // White text for readability
         marginRight: wp(2),
+        paddingVertical: 0, // Remove excess padding for better alignment
     },
     sendButton: {
-        backgroundColor: '#017B6B',
+        backgroundColor: '#3E3E3E', // Modern green for the send button
         width: hp(4.5),
         height: hp(4.5),
-        borderRadius: hp(2.25),
+        borderRadius: hp(2.75), // Perfectly circular button
         justifyContent: 'center',
         alignItems: 'center',
-        marginLeft: wp(1),
+        marginLeft: wp(2),
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 3,
     },
 });
+
+
+

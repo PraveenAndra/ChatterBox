@@ -1,18 +1,14 @@
 import React from 'react';
-import { View, Text, Platform, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Image } from 'expo-image';
-import { blurhash } from '@/utils/common';
 import { useAuth } from '@/context/authContext';
 import { Menu, MenuOptions, MenuTrigger } from 'react-native-popup-menu';
-import { AntDesign, Feather } from '@expo/vector-icons';
+import { Feather, AntDesign, Entypo } from '@expo/vector-icons';
 import { MenuItem } from './CustomMenuItems';
-import {useFonts} from "expo-font";
-import {Inter_400Regular, Inter_700Bold} from "@expo-google-fonts/inter";
-import {useExpoRouter} from "expo-router/build/global-state/router-store";
-
-const ios = Platform.OS === 'ios';
+import { useFonts } from "expo-font";
+import { Inter_400Regular, Inter_700Bold } from "@expo-google-fonts/inter";
+import { useExpoRouter } from "expo-router/build/global-state/router-store";
 
 const HomeHeader: React.FC = () => {
     const { user, logout } = useAuth();
@@ -23,10 +19,6 @@ const HomeHeader: React.FC = () => {
         Inter_700Bold,
     });
 
-    // if (!fontsLoaded) {
-    //     return <AppLoading />;
-    // }
-
     const handleProfile = () => {
         console.log('Profile pressed');
         router.push('/profile');
@@ -35,7 +27,7 @@ const HomeHeader: React.FC = () => {
     const handleLogout = async () => {
         try {
             await logout();
-            console.log('Logged out');
+            router.replace('/login');
         } catch (error) {
             console.error('Logout failed', error);
         }
@@ -46,30 +38,24 @@ const HomeHeader: React.FC = () => {
             <Text style={styles.title}>Chats</Text>
 
             <Menu>
-                <MenuTrigger>
-                    {/*<TouchableOpacity activeOpacity={0.8}>*/}
-                        <Image
-                            style={styles.profileImage}
-                            source={user?.profileUrl || require('../assets/images/avatar.png')}
-                            placeholder={blurhash}
-                            transition={500}
-                        />
-                    {/*</TouchableOpacity>*/}
+                <MenuTrigger customStyles={{ TriggerTouchableComponent: TouchableOpacity }}>
+                    <View style={styles.menuIconWrapper}>
+                        <Entypo name="dots-three-horizontal" size={hp(2)} color="#FFF" />
+                    </View>
                 </MenuTrigger>
-
                 <MenuOptions customStyles={menuOptionsStyles}>
                     <MenuItem
                         text="Profile"
                         action={handleProfile}
                         value={null}
-                        icon={<Feather name="user" size={hp(2.5)} color="#737373" />}
+                        icon={<Feather name="user" size={hp(2.5)} color="#FFF" />}
                     />
                     <Divider />
                     <MenuItem
                         text="Sign Out"
                         action={handleLogout}
                         value={null}
-                        icon={<AntDesign name="logout" size={hp(2.5)} color="#737373" />}
+                        icon={<AntDesign name="logout" size={hp(2.5)} color="#FFF" />}
                     />
                 </MenuOptions>
             </Menu>
@@ -86,31 +72,35 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: wp(5),
-        backgroundColor: '#017B6B',
-        paddingBottom: hp(1.5),
+        paddingHorizontal: wp(3),
+        paddingBottom: hp(2),
+        paddingTop: hp(5), // Increased height
+        backgroundColor: '#000000',
+        borderBottomWidth: 1,
+        borderBottomColor: '#333',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 4, // Elevation for Android shadow
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 6,
+        elevation: 6,
     },
     title: {
-        fontSize: hp(2.8), // Slightly larger text size for modern look
-        fontWeight: '600',
-        color: 'white',
-        // fontFamily: 'Inter_400Regular',
+        fontSize: hp(2.5), // Slightly larger text
+        fontWeight: '700',
+        color: '#FFF',
+        letterSpacing: 0.7,
     },
-    profileImage: {
-        height: hp(5), // Increased for better proportions
-        width: hp(5),
-        borderRadius: hp(2.5), // Make it perfectly circular
-        borderWidth: 1,
-        borderColor: '#FFF', // White border for better visibility
+    menuIconWrapper: {
+        height: hp(4),
+        width: hp(4),
+        borderRadius: hp(2.5), // Circular shape
+        backgroundColor: '#333',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     divider: {
         height: 1,
-        backgroundColor: '#e5e7eb',
+        backgroundColor: '#444',
         width: '100%',
         marginVertical: hp(0.5),
     },
@@ -118,13 +108,23 @@ const styles = StyleSheet.create({
 
 const menuOptionsStyles = {
     optionsContainer: {
-        borderRadius: 10,
+        borderRadius: 12,
         marginTop: 40,
-        marginLeft: -30,
-        backgroundColor: 'white',
+        marginLeft: -20,
+        backgroundColor: '#2A2A2A',
         shadowOpacity: 0.2,
         shadowOffset: { width: 0, height: 0 },
-        width: 160,
+        shadowRadius: 5,
+        width: 170,
+        // height: 160,
+        paddingVertical: hp(1),
+    },
+    optionWrapper: {
+        padding: hp(1),
+    },
+    optionText: {
+        color: '#FFFFFF', // Corrected text color to white
+        fontSize: hp(1.5),
     },
 };
 

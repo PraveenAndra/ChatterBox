@@ -14,13 +14,12 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
-import { Entypo, Feather, AntDesign } from '@expo/vector-icons'; // Added AntDesign for tick icon
+import { Entypo, Feather, AntDesign } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { db } from '@/firebaseConfig';
-import { collection, getDocs, query, where, doc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
 import { useAuth } from '@/context/authContext';
-import { getRoomId } from '@/utils/common';
 
 interface User {
     userId: string;
@@ -35,7 +34,7 @@ export default function AddUser() {
 
     const [searchText, setSearchText] = useState<string>('');
     const [users, setUsers] = useState<User[]>([]);
-    const [selectedUser, setSelectedUser] = useState<string | null>(null); // Store userId of selected user
+    const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
 
     const fetchUsers = async (username: string) => {
@@ -51,11 +50,15 @@ export default function AddUser() {
                 where('username', '<=', username + '\uf8ff')
             );
             const querySnapshot = await getDocs(q);
-            const fetchedUsers = querySnapshot.docs
-                .map((doc) => doc.data() as User)
-                .filter((user) => user.userId !== currentUser?.userId);
+            const fetchedUsers = querySnapshot.docs.map((doc) => doc.data() as User);
 
-            setUsers(fetchedUsers);
+            // Include selected user in results if they exist
+            if (selectedUser && !fetchedUsers.some((u) => u.userId === selectedUser.userId)) {
+                fetchedUsers.push(selectedUser);
+            }
+
+            // Exclude the current user from the search results
+            setUsers(fetchedUsers.filter((user) => user.userId !== currentUser?.userId));
         } catch (error) {
             console.error('Error fetching users:', error);
         } finally {
@@ -63,35 +66,17 @@ export default function AddUser() {
         }
     };
 
-    const checkExistingRoom = async (selectedUser: User) => {
-        const roomId = getRoomId(currentUser?.userId, selectedUser.userId);
-        const roomRef = doc(db, 'rooms', roomId);
-        const roomSnap = await getDoc(roomRef);
-
-        if (roomSnap.exists()) {
-            router.push({ pathname: '/chatRoom', params: { userId: selectedUser.userId } });
-        } else {
-            await createNewRoom(selectedUser);
-            router.push({ pathname: '/chatRoom', params: { userId: selectedUser.userId } });
-        }
-    };
-
-    const createNewRoom = async (selectedUser: User) => {
-        const roomId = getRoomId(currentUser?.userId, selectedUser.userId);
-        await setDoc(doc(db, 'rooms', roomId), {
-            roomId,
-            users: [currentUser?.userId, selectedUser.userId],
-            createdAt: new Date(),
-        });
-    };
-
     const handleStartChat = () => {
         if (!selectedUser) {
             Alert.alert('Error', 'Please select a user to chat with.');
             return;
         }
-        const user = users.find((u) => u.userId === selectedUser);
-        if (user) checkExistingRoom(user);
+        router.push({ pathname: '/chatRoom', params: { userId: selectedUser.userId, username: selectedUser.username, profileUrl: selectedUser.profileUrl } });
+    };
+
+    const clearSearch = () => {
+        setSearchText('');
+        setUsers([]);
     };
 
     return (
@@ -101,13 +86,14 @@ export default function AddUser() {
         >
             <StatusBar style="dark" />
             <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-                <TouchableOpacity onPress={() => router.back()}>
+                <TouchableOpacity onPress={() => router.push({ pathname: '/home', params: { refresh: 'true' } })}>
                     <Entypo name="chevron-left" size={hp(3.5)} color="#FFF" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>New Chat</Text>
             </View>
 
             <View style={styles.innerContainer}>
+                {/* Search Bar */}
                 <View style={styles.searchContainer}>
                     <Feather name="search" size={20} color="#C7C7C7" style={styles.searchIcon} />
                     <TextInput
@@ -120,8 +106,38 @@ export default function AddUser() {
                             fetchUsers(text);
                         }}
                     />
+                    {searchText.length > 0 && (
+                        <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
+                            <AntDesign name="closecircle" size={18} color="#C7C7C7" />
+                        </TouchableOpacity>
+                    )}
                 </View>
 
+                {/* Selected User Display */}
+                {selectedUser && !searchText && (
+                    <View style={styles.selectedUserContainer}>
+                        <Image
+                            source={
+                                selectedUser.profileUrl
+                                    ? { uri: selectedUser.profileUrl }
+                                    : require('../../assets/images/avatar.png')
+                            }
+                            style={styles.userAvatar}
+                        />
+                        <View style={styles.userInfo}>
+                            <Text style={styles.username}>{selectedUser.username}</Text>
+                            {/*<Text style={styles.subText}>Selected User</Text>*/}
+                        </View>
+                        <TouchableOpacity
+                            style={styles.unselectButton}
+                            onPress={() => setSelectedUser(null)}
+                        >
+                            <AntDesign name="closecircle" size={24} color="#3E3E3E" />
+                        </TouchableOpacity>
+                    </View>
+                )}
+
+                {/* User List */}
                 {loading ? (
                     <ActivityIndicator size="large" color="#017B6B" style={styles.loader} />
                 ) : (
@@ -130,12 +146,11 @@ export default function AddUser() {
                         keyExtractor={(item) => item.userId}
                         renderItem={({ item }) => (
                             <TouchableOpacity
-                                style={styles.userItem}
-                                onPress={() =>
-                                    setSelectedUser(
-                                        selectedUser === item.userId ? null : item.userId
-                                    )
-                                }
+                                style={[
+                                    styles.userItem,
+                                    selectedUser?.userId === item.userId && styles.selectedUserItem,
+                                ]}
+                                onPress={() => setSelectedUser(item)}
                             >
                                 <Image
                                     source={
@@ -147,9 +162,13 @@ export default function AddUser() {
                                 />
                                 <View style={styles.userInfo}>
                                     <Text style={styles.username}>{item.username}</Text>
-                                    <Text style={styles.subText}>Tap to select</Text>
+                                    <Text style={styles.subText}>
+                                        {selectedUser?.userId === item.userId
+                                            ? 'Selected'
+                                            : 'Tap to select'}
+                                    </Text>
                                 </View>
-                                {selectedUser === item.userId && (
+                                {selectedUser?.userId === item.userId && (
                                     <AntDesign name="checkcircle" size={24} color="#017B6B" />
                                 )}
                             </TouchableOpacity>
@@ -157,6 +176,7 @@ export default function AddUser() {
                     />
                 )}
 
+                {/* Start Chat Button */}
                 <TouchableOpacity
                     style={[
                         styles.startChatButton,
@@ -175,43 +195,40 @@ export default function AddUser() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FAFAFA',
-        paddingBottom: 15,
+        backgroundColor: '#1E1E1E', // Black/dark background for elegance
+        paddingBottom: hp(2),
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: wp(5),
-        paddingBottom: 10,
-        backgroundColor: '#017B6B',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 5,
-        elevation: 4,
+        paddingTop: hp(3),
+        paddingBottom: hp(2),
+        backgroundColor: '#000', // Solid black header
+        borderBottomWidth: 1,
+        borderBottomColor: '#333', // Subtle separation for the header
     },
     headerTitle: {
         marginLeft: wp(4),
-        fontSize: hp(2),
-        fontWeight: '500',
-        color: '#FFF',
+        fontSize: hp(2.5),
+        fontWeight: '700',
+        color: '#FFF', // Bright white text for contrast
     },
     innerContainer: {
         flex: 1,
         paddingHorizontal: wp(5),
-        marginTop: hp(2),
+        paddingTop: hp(2),
     },
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FFFFFF',
-        borderRadius: 30,
+        backgroundColor: '#333', // Dark gray background for search
+        borderRadius: 25,
         paddingHorizontal: wp(4),
-        paddingVertical: hp(1),
-        borderColor: '#E0E0E0',
+        paddingVertical: hp(1.2),
+        borderColor: '#444', // Slightly lighter border for subtle depth
         borderWidth: 1,
         marginBottom: hp(2),
-        elevation: 2,
     },
     searchIcon: {
         marginRight: wp(2),
@@ -219,19 +236,38 @@ const styles = StyleSheet.create({
     searchInput: {
         flex: 1,
         fontSize: hp(2),
-        color: '#333',
+        color: '#FFF', // White text for input
+    },
+    clearButton: {
+        marginLeft: wp(1),
     },
     loader: {
         marginVertical: hp(2),
     },
+    selectedUserContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#2A2A2A', // Slightly lighter black
+        borderRadius: 15,
+        padding: hp(1.5),
+        marginBottom: hp(2),
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 5,
+        elevation: 2, // Subtle elevation for depth
+    },
     userItem: {
         flexDirection: 'row',
         alignItems: 'center',
+        backgroundColor: '#2A2A2A', // Matches selected user container
         paddingVertical: hp(1.5),
         paddingHorizontal: wp(4),
-        borderRadius: 20,
+        borderRadius: 15,
         marginBottom: hp(1),
-        backgroundColor: '#F5F5F5',
+    },
+    selectedUserItem: {
+        backgroundColor: '#3B3B3B', // Highlight for selected user
     },
     userAvatar: {
         width: hp(5),
@@ -245,21 +281,26 @@ const styles = StyleSheet.create({
     username: {
         fontSize: hp(2),
         fontWeight: '600',
-        color: '#333',
+        color: '#FFF', // Bright white text
     },
     subText: {
         fontSize: hp(1.6),
-        color: '#777',
+        color: '#AAA', // Light gray for subtext
+    },
+    unselectButton: {
+        marginLeft: wp(3),
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     startChatButton: {
         marginTop: hp(3),
+        marginBottom: hp(3),
         width: '100%',
         height: hp(6.5),
-        backgroundColor: '#017B6B',
+        backgroundColor: '#000', // Black button for consistency
         borderRadius: 30,
         justifyContent: 'center',
         alignItems: 'center',
-        elevation: 2,
     },
     buttonText: {
         color: '#FFF',
@@ -267,3 +308,4 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
 });
+

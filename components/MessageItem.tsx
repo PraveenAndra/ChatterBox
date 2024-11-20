@@ -52,13 +52,13 @@ const styles = StyleSheet.create({
         maxWidth: wp(75),
         paddingVertical: hp(1.2),
         paddingHorizontal: wp(4),
-        backgroundColor: '#DCF8C6', // Light green WhatsApp style
+        backgroundColor: '#02574b', // Deep green for sender's message
         borderRadius: 20,
         borderBottomRightRadius: 5,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
         elevation: 2,
     },
     otherMessageContainer: {
@@ -71,24 +71,25 @@ const styles = StyleSheet.create({
         maxWidth: wp(75),
         paddingVertical: hp(1.2),
         paddingHorizontal: wp(4),
-        backgroundColor: '#FFFFFF', // White bubble for other user
+        backgroundColor: '#2A2A2A', // Dark gray for other user's message
         borderRadius: 20,
         borderBottomLeftRadius: 5,
-        borderColor: '#E0E0E0',
+        borderColor: '#444', // Subtle border for contrast
         borderWidth: 1,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
         elevation: 1,
     },
     messageText: {
         fontSize: hp(2),
-        color: '#333',
+        color: '#FFFFFF', // White text for visibility on dark bubbles
+        lineHeight: hp(2.5), // Better readability with proper line height
     },
     timestamp: {
         fontSize: hp(1.4),
-        color: '#808080',
+        color: '#AAA', // Subtle gray for timestamps
         textAlign: 'right',
         marginTop: hp(0.5),
     },

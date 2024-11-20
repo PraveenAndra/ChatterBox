@@ -21,9 +21,10 @@ import { router } from "expo-router";
 import { db } from '@/firebaseConfig'; // Assuming firebase is initialized and exported from this path
 import { doc, updateDoc } from 'firebase/firestore';
 import * as FileSystem from 'expo-file-system';
+import * as ImageManipulator from 'expo-image-manipulator';
 
 export default function Profile() {
-    const { user, logout } = useAuth();
+    const { user, logout,refreshUser } = useAuth();
     const [username, setUsername] = useState(user?.username || '');
     const [profileUrl, setProfileUrl] = useState(user?.profileUrl || '');
     const insets = useSafeAreaInsets();
@@ -32,23 +33,64 @@ export default function Profile() {
     const isBase64 = (url: string) => url.startsWith("data:image/");
 
     const handleImagePick = async () => {
-        const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!granted) {
-            Alert.alert('Permission Required', 'Media library access is required to select a photo.');
+        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+        if (!permissionResult.granted) {
+            Alert.alert("Permission Denied", "You need to grant camera roll permissions to use this feature.");
             return;
         }
 
         const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            quality: 0.5, // Adjust quality as needed
-            base64: true, // Include base64 data directly
+            allowsEditing: true,
+            quality: 1, // Start with high quality
+            base64: true,
         });
 
-        if (!result.canceled && result.assets[0]?.base64) {
-            // console.log(result.assets[0]);
-            setProfileUrl(result.assets[0].uri); // Use base64 data
-            console.log(profileUrl);
+        if (!result.canceled) {
+            try {
+                const base64Image = await processImage(result.assets[0]);
+                setProfileUrl(base64Image);
+                Alert.alert("Success", "Profile image updated successfully.");
+            } catch (error: any) {
+                Alert.alert("Error", error.message || "An unexpected error occurred.");
+            }
         }
+    };
+
+    const processImage = async (image: ImagePicker.ImagePickerAsset): Promise<string> => {
+        const { base64, uri } = image;
+        console.log(base64);
+
+        // Check if the base64 exceeds Firestore's limit
+        if (base64 && base64.length <= 1048487) {
+            return `data:image/jpeg;base64,${base64}`;
+        }
+
+        // Compress the image if it exceeds the limit
+        const compressedImage = await ImageManipulator.manipulateAsync(
+            uri,
+            [{ resize: { width: 800 } }], // Resize to a smaller width while maintaining aspect ratio
+            { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG } // Reduce quality and save as JPEG
+        );
+
+        // Convert the compressed image to Base64
+        const compressedBase64 = await fetch(compressedImage.uri)
+            .then((response) => response.blob())
+            .then((blob) =>
+                new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result as string);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                })
+            );
+
+        if (compressedBase64.length > 1048487) {
+            throw new Error("The image is still too large after compression. Please select a smaller image.");
+        }
+
+        return compressedBase64;
     };
 
 
@@ -82,7 +124,7 @@ export default function Profile() {
                 username: username,
                 profileUrl: profileUrl,
             });
-
+            await refreshUser();
             // Success alert
             Alert.alert('Profile updated', 'Your profile has been successfully updated.');
         } catch (error) {
@@ -96,7 +138,7 @@ export default function Profile() {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
             <StatusBar style="light" />
             <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-                <TouchableOpacity onPress={() => router.back()}>
+                <TouchableOpacity onPress={() =>router.push({ pathname: '/home', params: { refresh: 'true' } })}>
                     <Entypo name="chevron-left" size={hp(3)} color="#FFF" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Edit Profile</Text>
@@ -131,10 +173,10 @@ export default function Profile() {
                 </View>
 
                 <View style={styles.menuContainer}>
-                    <MenuItem icon="lock" title="Change Password" onPress={() => router.push('change-password')}/>
-                    <MenuItem icon="bell" title="Notifications" />
-                    <MenuItem icon="eye" title="Privacy Settings" />
-                    <MenuItem icon="info" title="About App" />
+                    <MenuItem icon="lock" title="Change Password" onPress={() => router.push('/change-password')}/>
+                    {/*<MenuItem icon="bell" title="Notifications" />*/}
+                    {/*<MenuItem icon="eye" title="Privacy Settings" />*/}
+                    {/*<MenuItem icon="info" title="About App" />*/}
                     <MenuItem icon="log-out" title="Logout" onPress={handleLogout} />
                 </View>
             </ScrollView>
@@ -145,10 +187,10 @@ export default function Profile() {
 const MenuItem = ({ icon, title, onPress }: { icon: keyof typeof Feather.glyphMap; title: string; onPress?: () => void }) => (
     <TouchableOpacity style={styles.menuItem} onPress={onPress}>
         <View style={styles.menuIconWrapper}>
-            <Feather name={icon} size={hp(2.2)} color="#017B6B" />
+            <Feather name={icon} size={hp(2.2)} color="#FFF" />
         </View>
         <Text style={styles.menuText}>{title}</Text>
-        <Entypo name="chevron-right" size={hp(2)} color="#A5A5A5" />
+        <Entypo name="chevron-right" size={hp(2)} color="#000" />
     </TouchableOpacity>
 );
 
@@ -163,7 +205,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: wp(5),
         paddingBottom: 15,
-        backgroundColor: '#017B6B',
+        backgroundColor: '#000000',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
@@ -199,7 +241,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 0,
         right: wp(2),
-        backgroundColor: '#017B6B',
+        backgroundColor: '#000000',
         padding: hp(0.5),
         borderRadius: hp(1.5),
     },
@@ -233,7 +275,7 @@ const styles = StyleSheet.create({
         paddingVertical: hp(1.2),
         paddingHorizontal: wp(4),
         backgroundColor: '#FFFFFF',
-        borderRadius: 15,
+        borderRadius: 100,
         marginBottom: hp(1),
         elevation: 2,
         shadowColor: '#000',
@@ -242,9 +284,9 @@ const styles = StyleSheet.create({
         shadowRadius: 1,
     },
     menuIconWrapper: {
-        backgroundColor: '#E0F2F1',
+        backgroundColor: '#333',
         padding: hp(0.8),
-        borderRadius: 8,
+        borderRadius: 100,
         marginRight: wp(3),
     },
     menuText: {

@@ -1,4 +1,4 @@
-    import {
+import {
     View,
     ActivityIndicator,
     StyleSheet,
@@ -6,55 +6,64 @@
     TouchableOpacity,
     AppStateStatus,
     AppState,
+    Alert,
 } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/context/authContext';
 import { StatusBar } from 'expo-status-bar';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
-import {Feather, MaterialIcons} from '@expo/vector-icons';
+import { Feather, MaterialIcons } from '@expo/vector-icons';
 import ChatList from '../../components/ChatList';
 import {
-    getDocs, query, collection, QuerySnapshot, DocumentData, where, doc, setDoc, updateDoc
+    getDocs,
+    query,
+    collection,
+    where,
+    doc,
+    setDoc,
+    updateDoc,
+    onSnapshot,
+    getDoc,
+    orderBy,
+    limit,
 } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
-import { useRouter } from 'expo-router';
-import { ref, set, onDisconnect } from 'firebase/database';
-import Ionicons from "@expo/vector-icons/Ionicons";
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
 interface User {
     userId: string;
     username: string;
     profileUrl?: string;
     [key: string]: any;
+    lastInteraction?: number; // Timestamp for sorting
+    state?: 'online' | 'offline'; // Online/offline status
 }
 
 export default function Home() {
     const { user } = useAuth();
     const router = useRouter();
+    const { refresh } = useLocalSearchParams(); // Get `refresh` parameter from URL
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
 
     useEffect(() => {
-        if (user?.userId) {
-            fetchUsersWithChatHistory();
-            setUserPresence(user.userId); // Set the user online when they enter the app
+        if (!user?.userId) {
+            Alert.alert('Error', 'User data is missing. Please log in again.');
+            return;
         }
 
-        const handleAppStateChange = async (nextAppState: AppStateStatus) => {
-            console.log("AppState change detected:", nextAppState); // Debugging line to see the state
+        // Fetch users and setup presence updates
+        fetchUsersWithChatHistory();
+        setUserPresence(user.userId);
 
+        const presenceListener = setupPresenceListener();
+        const handleAppStateChange = (nextAppState: AppStateStatus) => {
             if (nextAppState === 'active') {
-                // Set user online when app becomes active
-                 setUserPresence(user.userId);
+                setUserPresence(user.userId);
             } else if (nextAppState === 'background' || nextAppState === 'inactive') {
-                // Delay offline update to allow async calls to complete before backgrounding
-                setTimeout(() => {
-                 setUserOffline(user.userId);
-                }, 100); // Adjust delay if needed for testing
+                setUserOffline(user.userId);
             }
-
-            // Update the appState to track current state
             setAppState(nextAppState);
         };
 
@@ -62,62 +71,119 @@ export default function Home() {
 
         return () => {
             subscription.remove();
+            presenceListener();
         };
-    }, [user?.userId, appState]);
+    }, [user?.userId]);
+
+    useEffect(() => {
+        // Trigger a refresh when the `refresh` parameter changes
+        if (refresh) {
+            setLoading(true);
+            fetchUsersWithChatHistory();
+        }
+    }, [refresh]);
 
     const setUserPresence = async (userId: string) => {
         const userStatusDocRef = doc(db, 'presence', userId);
 
-        // Set user status to online
-        await setDoc(userStatusDocRef, {
-            state: 'online',
-            lastSeen: Date.now(),
-        }, { merge: true }); // Merge ensures only specific fields are updated
+        try {
+            await setDoc(
+                userStatusDocRef,
+                {
+                    state: 'online',
+                    lastSeen: Date.now(),
+                },
+                { merge: true }
+            );
+        } catch (error) {
+            console.error('Error setting user presence:', error);
+        }
     };
 
     const setUserOffline = async (userId: string) => {
         const userStatusDocRef = doc(db, 'presence', userId);
 
-        // Set the user status to offline directly
-        await updateDoc(userStatusDocRef, {
-            state: 'offline',
-            lastSeen: Date.now(),
+        try {
+            await updateDoc(userStatusDocRef, {
+                state: 'offline',
+                lastSeen: Date.now(),
+            });
+        } catch (error) {
+            console.error('Error setting user offline:', error);
+        }
+    };
+
+    const setupPresenceListener = () => {
+        const unsubscribe = onSnapshot(collection(db, 'presence'), (snapshot) => {
+            const presenceMap: Record<string, 'online' | 'offline'> = {};
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                presenceMap[doc.id] = data.state || 'offline';
+            });
+
+            // Update the state for the users
+            setUsers((prevUsers) =>
+                prevUsers.map((u) => ({
+                    ...u,
+                    state: presenceMap[u.userId] || 'offline',
+                }))
+            );
         });
+
+        return unsubscribe;
     };
 
     const fetchUsersWithChatHistory = async (): Promise<void> => {
+        if (!user?.userId) return;
+
         try {
             const roomsRef = collection(db, 'rooms');
             const roomSnapshot = await getDocs(roomsRef);
 
             const relevantRoomIds: string[] = roomSnapshot.docs
-                .map((doc) => doc.id) // Extract room IDs
-                .filter((roomId) => roomId.includes(user?.userId || '')); // Filter rooms that contain current user's ID
+                .map((doc) => doc.id)
+                .filter((roomId) => roomId.includes(user.userId));
 
             const otherUserIds = new Set<string>();
 
-            // Extract the other user ID from each relevant room ID
-            relevantRoomIds.forEach((roomId) => {
+            for (const roomId of relevantRoomIds) {
                 const participants = roomId.split('-');
-                const otherUserId = participants.find((id) => id !== user?.userId);
-                if (otherUserId) otherUserIds.add(otherUserId);
-            });
+                const otherUserId = participants.find((id) => id !== user.userId);
+
+                if (otherUserId) {
+                    const roomDoc = doc(db, 'rooms', roomId);
+                    const messagesRef = collection(roomDoc, 'messages');
+                    const latestMessageQuery = query(messagesRef, orderBy('createdAt', 'desc'), limit(1));
+                    const messageSnapshot = await getDocs(latestMessageQuery);
+
+                    if (!messageSnapshot.empty) {
+                        const lastMessage = messageSnapshot.docs[0].data();
+                        otherUserIds.add(
+                            JSON.stringify({ userId: otherUserId, lastInteraction: lastMessage.createdAt.toMillis() })
+                        );
+                    } else {
+                        otherUserIds.add(JSON.stringify({ userId: otherUserId, lastInteraction: 0 }));
+                    }
+                }
+            }
 
             if (otherUserIds.size === 0) {
-                console.log('No other users found.');
                 setUsers([]);
                 return;
             }
 
-            // Fetch details of all other participants
-            const usersQuery = query(
-                collection(db, 'users'),
-                where('userId', 'in', Array.from(otherUserIds))
-            );
-            const usersSnapshot = await getDocs(usersQuery);
+            const sortedUsers: User[] = [];
+            for (const userString of otherUserIds) {
+                const { userId, lastInteraction } = JSON.parse(userString);
+                const userDoc = await getDoc(doc(db, 'users', userId));
+                if (userDoc.exists()) {
+                    const userData = userDoc.data() as User;
+                    sortedUsers.push({ ...userData, lastInteraction });
+                }
+            }
 
-            const usersWithHistory = usersSnapshot.docs.map((doc) => doc.data() as User);
-            setUsers(usersWithHistory);
+            sortedUsers.sort((a, b) => (b.lastInteraction || 0) - (a.lastInteraction || 0));
+            setUsers(sortedUsers);
         } catch (error) {
             console.error('Error fetching users with chat history:', error);
         } finally {
@@ -168,7 +234,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: hp(4),
         right: wp(4),
-        backgroundColor: '#017B6B',
+        backgroundColor: '#000000',
         width: hp(6),
         height: hp(6),
         borderRadius: hp(3),
