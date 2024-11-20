@@ -7,7 +7,7 @@ import {
     TouchableOpacity,
     Pressable,
     Alert,
-    StyleSheet,
+    StyleSheet, Platform,
 } from 'react-native';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -98,8 +98,14 @@ const SignUp: React.FC = () => {
             try {
                 const base64Image = await processImage(result.assets[0]);
                 setProfileImage(base64Image);
+                if( Platform.OS === 'web'){
+                    window.alert("Profile image updated successfully.");
+                }else
                 Alert.alert("Success", "Profile image updated successfully.");
             } catch (error: any) {
+                if( Platform.OS === 'web'){
+                    window.alert("Error");
+                }
                 Alert.alert("Error", error.message || "An unexpected error occurred.");
             }
         }

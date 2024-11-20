@@ -49,7 +49,7 @@ export default function Home() {
 
     useEffect(() => {
         if (!user?.userId) {
-            Alert.alert('Error', 'User data is missing. Please log in again.');
+            // Alert.alert('Error', 'User data is missing. Please log in again.');
             return;
         }
 
